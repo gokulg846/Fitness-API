@@ -65,13 +65,13 @@ app.get("/auth/google/callback", async (req, res) => {
     const { tokens } = await oAuth2Client.getToken(code);
     oAuth2Client.setCredentials(tokens);
     req.session.tokens = tokens;
-    res.redirect("/"); // Redirect back to home to see the dashboard
+    res.redirect("/"); 
   } catch (error) {
     res.status(500).send("Authentication Error");
   }
 });
 
-// Route: Fetch Data for Frontend
+// Route: Fetch Data and Save to Appwrite
 app.get("/fetch-data", async (req, res) => {
   try {
     const fitness = google.fitness({ version: "v1", auth: oAuth2Client });
@@ -104,9 +104,23 @@ app.get("/fetch-data", async (req, res) => {
       return {
         date: new Date(parseInt(bucket.startTimeMillis)).toLocaleDateString(),
         step_count: steps,
-        heart_rate: heartRate.toFixed(1)
+        heart_rate: parseFloat(heartRate.toFixed(1))
       };
     });
+
+    // --- SAVE TO APPWRITE ---
+    for (const entry of formattedData) {
+      try {
+        await database.createDocument(
+          process.env.APPWRITE_DATABASE_ID,   // Add this to Render Environment
+          process.env.APPWRITE_COLLECTION_ID, // Add this to Render Environment
+          'unique()', 
+          entry
+        );
+      } catch (dbError) {
+        console.log("Database write skipped: Record may already exist or schema mismatch.");
+      }
+    }
 
     res.json({ status: "success", data: formattedData });
   } catch (error) {
