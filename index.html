@@ -1,10 +1,17 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Fitness API</title>
-</head>
-<body>
-    <h1>Google Fit Data Puller</h1>
-    <a href="/auth/google">Login with Google to Sync Data</a>
-</body>
-</html>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<canvas id="fitnessChart"></canvas>
+<script>
+  fetch('/fetch-data')
+    .then(res => res.json())
+    .then(data => {
+      const labels = data.formattedData.map(d => d.date);
+      const steps = data.formattedData.map(d => d.step_count);
+      new Chart(document.getElementById('fitnessChart'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{ label: 'Daily Steps', data: steps }]
+        }
+      });
+    });
+</script>
