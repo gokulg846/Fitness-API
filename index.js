@@ -10,11 +10,14 @@ require("dotenv").config();
 const app = express();
 const secretKey = crypto.randomBytes(32).toString("hex");
 
-// Appwrite Setup
+// Serve static files (like style.css)
+app.use(express.static(path.join(__dirname)));
+
+// Appwrite Setup [cite: 4, 22]
 const client = new Client();
 client
   .setEndpoint(process.env.APPWRITE_ENDPOINT || "https://cloud.appwrite.io/v1")
-  .setProject(process.env.PROJECT_ID)
+  .setProject(process.env.PROJECT_ID || "698560cb003bcdb1c88e")
   .setKey(process.env.API_KEY);
 const database = new Databases(client);
 
@@ -30,58 +33,48 @@ const SCOPES = [
   "https://www.googleapis.com/auth/fitness.heart_rate.read",
   "https://www.googleapis.com/auth/fitness.sleep.read",
   "https://www.googleapis.com/auth/userinfo.profile"
-];
+]; [cite: 5, 25]
 
 app.use(cors());
 app.use(session({
   secret: secretKey,
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: process.env.NODE_ENV === "production" } 
-}));
+  cookie: { secure: process.env.NODE_ENV === "production" }
+})); [cite: 6, 26]
 
-// Route: Home Page with basic UI
+// Route: Serve index.html as the home page
 app.get("/", (req, res) => {
-  res.send(`
-    <div style="font-family: sans-serif; text-align: center; padding: 50px;">
-      <h1>Fitness Data Dashboard</h1>
-      <p>Status: Server is Live 🟢</p>
-      <a href="/auth/google" style="padding: 10px 20px; background: #4285F4; color: white; text-decoration: none; border-radius: 5px;">
-        Login with Google Fit
-      </a>
-    </div>
-  `);
+  res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// Route: Start Auth
+// Route: Start Auth [cite: 8, 28]
 app.get("/auth/google", (req, res) => {
   const authUrl = oAuth2Client.generateAuthUrl({
     access_type: "offline",
     scope: SCOPES,
-    prompt: "consent" // Forces refresh token
+    prompt: "consent"
   });
   res.redirect(authUrl);
 });
 
-// Route: OAuth Callback
+// Route: OAuth Callback [cite: 9, 29]
 app.get("/auth/google/callback", async (req, res) => {
   const { code } = req.query;
   try {
     const { tokens } = await oAuth2Client.getToken(code);
     oAuth2Client.setCredentials(tokens);
     req.session.tokens = tokens;
-    res.redirect("/fetch-data");
+    res.redirect("/"); // Redirect back to home to see the dashboard
   } catch (error) {
     res.status(500).send("Authentication Error");
   }
 });
 
-// Route: Fetch and Aggregate Data
+// Route: Fetch Data for Frontend [cite: 10, 30]
 app.get("/fetch-data", async (req, res) => {
   try {
     const fitness = google.fitness({ version: "v1", auth: oAuth2Client });
-    
-    // Last 14 days
     const endTimeMillis = Date.now();
     const startTimeMillis = endTimeMillis - (14 * 24 * 60 * 60 * 1000);
 
@@ -90,10 +83,9 @@ app.get("/fetch-data", async (req, res) => {
       requestBody: {
         aggregateBy: [
           { dataTypeName: "com.google.step_count.delta" },
-          { dataTypeName: "com.google.heart_rate.bpm" },
-          { dataTypeName: "com.google.sleep.segment" }
+          { dataTypeName: "com.google.heart_rate.bpm" }
         ],
-        bucketByTime: { durationMillis: 86400000 }, // 1 day buckets
+        bucketByTime: { durationMillis: 86400000 },
         startTimeMillis,
         endTimeMillis,
       },
@@ -102,7 +94,6 @@ app.get("/fetch-data", async (req, res) => {
     const formattedData = response.data.bucket.map(bucket => {
       let steps = 0;
       let heartRate = 0;
-      
       bucket.dataset.forEach(ds => {
         if (ds.point.length > 0) {
           const val = ds.point[0].value[0];
@@ -110,21 +101,18 @@ app.get("/fetch-data", async (req, res) => {
           if (ds.dataSourceId.includes("heart_rate")) heartRate = val.fpVal || 0;
         }
       });
-
       return {
-        date: new Date(parseInt(bucket.startTimeMillis)).toDateString(),
+        date: new Date(parseInt(bucket.startTimeMillis)).toLocaleDateString(),
         step_count: steps,
         heart_rate: heartRate.toFixed(1)
       };
-    });
+    }); [cite: 11, 31, 34]
 
     res.json({ status: "success", data: formattedData });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: "Failed to fetch data" });
   }
 });
 
-// Render dynamic port
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(\`Server on port \${PORT}\`));
+app.listen(PORT, () => console.log(`Server on port ${PORT}`)); [cite: 13, 14, 38, 39]
