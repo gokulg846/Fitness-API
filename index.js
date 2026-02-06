@@ -109,16 +109,18 @@ app.get("/fetch-data", async (req, res) => {
     });
 
     // --- SAVE TO APPWRITE ---
+    // --- SAVE TO APPWRITE ---
     for (const entry of formattedData) {
       try {
         await database.createDocument(
-          process.env.APPWRITE_DATABASE_ID,   // Add this to Render Environment
-          process.env.APPWRITE_COLLECTION_ID, // Add this to Render Environment
+          '69857181003ac4557049',   // <--- REPLACE with your actual Database ID
+          'fit_web_table', // <--- REPLACE with your actual Collection ID
           'unique()', 
           entry
         );
+        console.log(`Saved entry for ${entry.date}`);
       } catch (dbError) {
-        console.log("Database write skipped: Record may already exist or schema mismatch.");
+        console.error("Error saving to Appwrite:", dbError.message);
       }
     }
 
