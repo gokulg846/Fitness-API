@@ -1,17 +1,52 @@
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<canvas id="fitnessChart"></canvas>
-<script>
-  fetch('/fetch-data')
-    .then(res => res.json())
-    .then(data => {
-      const labels = data.formattedData.map(d => d.date);
-      const steps = data.formattedData.map(d => d.step_count);
-      new Chart(document.getElementById('fitnessChart'), {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{ label: 'Daily Steps', data: steps }]
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fitness Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>My Health Dashboard</h1>
+            <a href="/auth/google" class="btn">Sync Google Fit</a>
+        </header>
+        
+        <div class="dashboard">
+            <div class="card">
+                <h3>Steps Overview</h3>
+                <canvas id="stepsChart"></canvas>
+            </div>
+            <div class="card">
+                <h3>Heart Rate Trend</h3>
+                <canvas id="heartChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadDashboard() {
+            const res = await fetch('/fetch-data');
+            const result = await res.json();
+            if (result.status === 'success') {
+                const labels = result.data.map(d => d.date);
+                const steps = result.data.map(d => d.step_count);
+                const heart = result.data.map(d => d.heart_rate);
+
+                new Chart(document.getElementById('stepsChart'), {
+                    type: 'bar',
+                    data: { labels, datasets: [{ label: 'Steps', data: steps, backgroundColor: '#4285F4' }] }
+                });
+
+                new Chart(document.getElementById('heartChart'), {
+                    type: 'line',
+                    data: { labels, datasets: [{ label: 'BPM', data: heart, borderColor: '#EA4335', fill: false }] }
+                });
+            }
         }
-      });
-    });
-</script>
+        loadDashboard();
+    </script>
+</body>
+</html>
