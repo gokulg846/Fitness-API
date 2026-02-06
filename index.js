@@ -13,7 +13,7 @@ const secretKey = crypto.randomBytes(32).toString("hex");
 // Serve static files (like style.css)
 app.use(express.static(path.join(__dirname)));
 
-// Appwrite Setup [cite: 4, 22]
+// Appwrite Setup
 const client = new Client();
 client
   .setEndpoint(process.env.APPWRITE_ENDPOINT || "https://cloud.appwrite.io/v1")
@@ -33,7 +33,7 @@ const SCOPES = [
   "https://www.googleapis.com/auth/fitness.heart_rate.read",
   "https://www.googleapis.com/auth/fitness.sleep.read",
   "https://www.googleapis.com/auth/userinfo.profile"
-]; [cite: 5, 25]
+];
 
 app.use(cors());
 app.use(session({
@@ -41,14 +41,14 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: { secure: process.env.NODE_ENV === "production" }
-})); [cite: 6, 26]
+}));
 
 // Route: Serve index.html as the home page
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// Route: Start Auth [cite: 8, 28]
+// Route: Start Auth
 app.get("/auth/google", (req, res) => {
   const authUrl = oAuth2Client.generateAuthUrl({
     access_type: "offline",
@@ -58,7 +58,7 @@ app.get("/auth/google", (req, res) => {
   res.redirect(authUrl);
 });
 
-// Route: OAuth Callback [cite: 9, 29]
+// Route: OAuth Callback
 app.get("/auth/google/callback", async (req, res) => {
   const { code } = req.query;
   try {
@@ -71,7 +71,7 @@ app.get("/auth/google/callback", async (req, res) => {
   }
 });
 
-// Route: Fetch Data for Frontend [cite: 10, 30]
+// Route: Fetch Data for Frontend
 app.get("/fetch-data", async (req, res) => {
   try {
     const fitness = google.fitness({ version: "v1", auth: oAuth2Client });
@@ -106,7 +106,7 @@ app.get("/fetch-data", async (req, res) => {
         step_count: steps,
         heart_rate: heartRate.toFixed(1)
       };
-    }); [cite: 11, 31, 34]
+    });
 
     res.json({ status: "success", data: formattedData });
   } catch (error) {
@@ -114,5 +114,6 @@ app.get("/fetch-data", async (req, res) => {
   }
 });
 
+// Port configuration for Render
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server on port ${PORT}`)); [cite: 13, 14, 38, 39]
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
